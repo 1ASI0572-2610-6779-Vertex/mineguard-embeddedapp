@@ -1,7 +1,9 @@
 # MineGuard — Embedded Application
 
 Mining-safety IoT node for ESP32, built on the Modest-IoT Nano-framework
-(C++ Edition)
+(C++ Edition) following the same architecture as the BykerZ example: a
+self-contained, event-driven device that scans sensors, drives local alerts,
+and streams telemetry to an Edge Service over HTTP.
 
 ## Architecture
 - **Framework core** (unmodified, by Angel Velasquez): `EventHandler`,
