@@ -1,0 +1,6 @@
+# Wokwi Library List — MineGuard Embedded Application
+# The Modest-IoT framework is now INCLUDED FLAT in this sketch (self-contained),
+# so you do NOT need the Modest-IoT library installed for this project.
+ArduinoJson
+TinyGPSPlus
+LiquidCrystal_I2C
