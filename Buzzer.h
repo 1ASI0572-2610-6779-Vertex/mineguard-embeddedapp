@@ -5,33 +5,32 @@
  * @file Buzzer.h
  * @brief Passive buzzer actuator for the MineGuard embedded application.
  *
- * Concrete Actuator (mirrors the Led pattern) that drives a passive piezo buzzer
- * with TURN_ON (continuous alarm tone) and TURN_OFF commands.
+ * Drives a passive piezo buzzer with a restrained alarm tone.
  */
 
-#include "Actuator.h"
+#include <Arduino.h>
 
-class Buzzer : public Actuator {
+enum class BuzzerCommand {
+    TurnOn,
+    TurnOff
+};
+
+class Buzzer {
 private:
+    int outputPin;
     bool active;            ///< Current buzzer state.
     unsigned int frequency; ///< Alarm tone frequency in Hz.
 
 public:
-    static const int TURN_ON_COMMAND_ID  = 20;
-    static const int TURN_OFF_COMMAND_ID = 21;
-    static const Command TURN_ON_COMMAND;
-    static const Command TURN_OFF_COMMAND;
-
     /**
      * @brief Constructs the buzzer actuator.
      * @param pin Output GPIO pin connected to the buzzer.
      * @param frequency Alarm tone frequency in Hz (default: 1000).
-     * @param commandHandler Optional upstream handler (default: nullptr).
      */
-    Buzzer(int pin, unsigned int frequency = 1000, CommandHandler* commandHandler = nullptr);
+    Buzzer(int pin, unsigned int frequency = 1000);
 
     /** @brief Handles TURN_ON / TURN_OFF commands. */
-    void handle(Command command) override;
+    void handle(BuzzerCommand command);
 
     /** @brief Returns whether the buzzer is currently sounding. */
     bool isActive() const;

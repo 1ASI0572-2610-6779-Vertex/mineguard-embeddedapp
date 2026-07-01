@@ -1,10 +1,14 @@
 #include "GPSSensor.h"
 #include <Arduino.h>
 
-GPSSensor::GPSSensor(int uartNum, int rx, int tx, EventHandler* eventHandler)
-    : Sensor(uartNum, eventHandler), gpsSerial(uartNum), rxPin(rx), txPin(tx),
-      latitude(0.0), longitude(0.0) {
-    gpsSerial.begin(9600, SERIAL_8N1, rxPin, txPin); //16, 17
+GPSSensor::GPSSensor(int uartNum, int rx, int tx)
+    : gpsSerial(uartNum),
+      latitude(0.0),
+      longitude(0.0),
+      rxPin(rx),
+      txPin(tx),
+      locationFix(false) {
+    gpsSerial.begin(9600, SERIAL_8N1, rxPin, txPin);
     Serial.println("GPS initialized!");
 }
 
@@ -13,8 +17,11 @@ void GPSSensor::scanLocation() {
         gps.encode(gpsSerial.read());
     }
 
-    latitude = gps.location.lat(), 6;
-    longitude = gps.location.lng(), 6;
+    if (gps.location.isValid()) {
+        latitude = gps.location.lat();
+        longitude = gps.location.lng();
+        locationFix = true;
+    }
 }
 
 double GPSSensor::getLatitude() const {
@@ -23,4 +30,8 @@ double GPSSensor::getLatitude() const {
 
 double GPSSensor::getLongitude() const {
     return longitude;
+}
+
+bool GPSSensor::hasFix() const {
+    return locationFix;
 }

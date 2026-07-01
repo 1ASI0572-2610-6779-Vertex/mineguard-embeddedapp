@@ -3,33 +3,37 @@
 
 /**
  * @file EmergencyButton.h
- * @brief Manual SOS push button for the MineGuard embedded application.
+ * @brief Manual SOS push button — interrupt-driven (event-based).
  *
- * Concrete Sensor that reads a momentary push button (active LOW with internal
- * pull-up) and raises an SOS_PRESSED_EVENT when the operator requests help.
+ * Attaches a hardware interrupt on the button pin (active LOW, internal pull-up).
+ * A press latches a flag inside the ISR; poll() (run in task context) notifies
+ * the application. No polling of the pin in a busy loop.
  */
 
-#include "Sensor.h"
+#include "MineGuardEvent.h"
+#include <Arduino.h>
 
-class EmergencyButton : public Sensor {
+class EmergencyButton {
 private:
-    bool pressed; ///< True when the button is held on the last scan.
+    int inputPin;
+    volatile bool triggeredFlag;
+    bool pressed;
+    MineGuardEventSink* eventSink;
+
+    static void IRAM_ATTR isrTrampoline(void* arg);
 
 public:
-    static const int SOS_PRESSED_EVENT_ID = 14;
-    static const Event SOS_PRESSED_EVENT;
-
     /**
-     * @brief Constructs the emergency button.
-     * @param pin Digital input GPIO pin connected to the button.
-     * @param eventHandler Optional upstream handler (default: nullptr).
+     * @brief Constructs the SOS button and attaches its interrupt.
+     * @param pin Digital input GPIO connected to the button.
+     * @param sink Optional receiver for SOS events.
      */
-    EmergencyButton(int pin, EventHandler* eventHandler = nullptr);
+    EmergencyButton(int pin, MineGuardEventSink* sink = nullptr);
 
-    /** @brief Samples the button and fires SOS_PRESSED_EVENT while held. */
-    void scanButton();
+    /** @brief Consumes any interrupt-captured press and emits the event. */
+    void poll();
 
-    /** @brief Returns whether the button was held on the last scan. */
+    /** @brief Returns whether the button was pressed on the last poll. */
     bool isPressed() const;
 };
 
