@@ -1,18 +1,28 @@
 #include "EmergencyButton.h"
 #include <Arduino.h>
 
-const Event EmergencyButton::SOS_PRESSED_EVENT = Event(EmergencyButton::SOS_PRESSED_EVENT_ID);
-
-EmergencyButton::EmergencyButton(int pin, EventHandler* eventHandler)
-    : Sensor(pin, eventHandler), pressed(false) {
-    pinMode(pin, INPUT_PULLUP);
+void IRAM_ATTR EmergencyButton::isrTrampoline(void* arg) {
+    EmergencyButton* self = static_cast<EmergencyButton*>(arg);
+    self->triggeredFlag = true;
 }
 
-void EmergencyButton::scanButton() {
-    int state = digitalRead(pin);
-    if (state == LOW) {
+EmergencyButton::EmergencyButton(int pin, MineGuardEventSink* sink)
+    : inputPin(pin), triggeredFlag(false), pressed(false), eventSink(sink) {
+    pinMode(inputPin, INPUT_PULLUP);
+    attachInterruptArg(inputPin, isrTrampoline, this, FALLING);
+}
+
+void EmergencyButton::poll() {
+    noInterrupts();
+    bool captured = triggeredFlag;
+    triggeredFlag = false;
+    interrupts();
+
+    if (captured) {
         pressed = true;
-        on(SOS_PRESSED_EVENT);
+        if (eventSink != nullptr) {
+            eventSink->notify(MineGuardEvent::SosPressed);
+        }
     } else {
         pressed = false;
     }

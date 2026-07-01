@@ -1,20 +1,18 @@
 #include "UltrasonicSensor.h"
 #include <Arduino.h>
 
-const Event UltrasonicSensor::OBJECT_NEARBY_EVENT = Event(UltrasonicSensor::OBJECT_NEARBY_EVENT_ID);
-
-UltrasonicSensor::UltrasonicSensor(int trigPin, int echoPin, EventHandler* eventHandler)
-    : Sensor(trigPin, eventHandler), echoPin(echoPin), distanceCm(MAX_RANGE_CM) {
-    pinMode(pin, OUTPUT);     // trigger
+UltrasonicSensor::UltrasonicSensor(int trigPin, int echoPin, MineGuardEventSink* sink)
+    : triggerPin(trigPin), echoPin(echoPin), distanceCm(MAX_RANGE_CM), eventSink(sink) {
+    pinMode(triggerPin, OUTPUT);
     pinMode(echoPin, INPUT);  // echo
 }
 
 void UltrasonicSensor::scanDistance() {
-    digitalWrite(pin, LOW);
+    digitalWrite(triggerPin, LOW);
     delayMicroseconds(2);
-    digitalWrite(pin, HIGH);
+    digitalWrite(triggerPin, HIGH);
     delayMicroseconds(10);
-    digitalWrite(pin, LOW);
+    digitalWrite(triggerPin, LOW);
 
     long duration = pulseIn(echoPin, HIGH, 25000); // 25 ms timeout
     if (duration == 0) {
@@ -24,8 +22,8 @@ void UltrasonicSensor::scanDistance() {
         if (distanceCm > MAX_RANGE_CM) distanceCm = MAX_RANGE_CM;
     }
 
-    if (distanceCm <= PROXIMITY_THRESHOLD_CM) {
-        on(OBJECT_NEARBY_EVENT);
+    if (distanceCm <= PROXIMITY_THRESHOLD_CM && eventSink != nullptr) {
+        eventSink->notify(MineGuardEvent::ObjectNearby);
     }
 }
 

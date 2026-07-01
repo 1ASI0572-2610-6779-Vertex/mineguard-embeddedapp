@@ -1,18 +1,30 @@
 #include "CollisionSensor.h"
 #include <Arduino.h>
 
-const Event CollisionSensor::COLLISION_DETECTED_EVENT = Event(CollisionSensor::COLLISION_DETECTED_EVENT_ID);
-
-CollisionSensor::CollisionSensor(int pin, EventHandler* eventHandler)
-    : Sensor(pin, eventHandler), collisionDetected(false) {
-    pinMode(pin, INPUT_PULLUP); // KY-031 DO is active-low
+void IRAM_ATTR CollisionSensor::isrTrampoline(void* arg) {
+    // Keep the ISR minimal: just latch the event flag.
+    CollisionSensor* self = static_cast<CollisionSensor*>(arg);
+    self->triggeredFlag = true;
 }
 
-void CollisionSensor::scanCollision() {
-    int state = digitalRead(pin);
-    if (state == LOW) {
+CollisionSensor::CollisionSensor(int pin, MineGuardEventSink* sink)
+    : inputPin(pin), triggeredFlag(false), collisionDetected(false), eventSink(sink) {
+    pinMode(inputPin, INPUT_PULLUP); // KY-031 DO is active-low
+    attachInterruptArg(inputPin, isrTrampoline, this, FALLING);
+}
+
+void CollisionSensor::poll() {
+    // Consume the interrupt-captured flag atomically.
+    noInterrupts();
+    bool captured = triggeredFlag;
+    triggeredFlag = false;
+    interrupts();
+
+    if (captured) {
         collisionDetected = true;
-        on(COLLISION_DETECTED_EVENT);
+        if (eventSink != nullptr) {
+            eventSink->notify(MineGuardEvent::CollisionDetected);
+        }
     } else {
         collisionDetected = false;
     }
